@@ -4,7 +4,7 @@ import os
 import re
 
 etc_dir = os.environ['HOME'] + "/etc/twerial"
-prog_name = os.path.splitext(sys.argv[0])[0]
+prog_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 def read_options(rcfile):
     opts = { }
