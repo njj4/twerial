@@ -16,7 +16,7 @@ def read_options(rcfile):
         elif re.match('r^\s*$',txt) or re.match('^\s*#',txt):
             pass
     fp.close()
-    for f in ['counter_file', 'tweet_file']:
+    for f in ['counter_file', 'tweet_file', 'image_dir']:
         if not re.match(r'^/',opts[f]):
             opts[f] = etc_dir + '/' + opts[f]
     return opts
@@ -42,10 +42,16 @@ def read_tdata(opts,ctr):
     for txt in fp:
         if re.match(r'^\s*-*\s*$',txt):
             i += 1
+        elif re.match(r'^\s*#',txt):
+            pass
         elif i == ctr:
             m = re.match(r'^\s*\\(img|url)\s+(.*?)\s*$',txt)
             if m:
-                tdata[m.group(1)] = m.group(2)
+                k = m.group(1)
+                v = m.group(2)
+                if k == "img" and not re.match(r'^/',v):
+                    v = opts['image_dir'] + '/' + v
+                tdata[k] = v
             else:
                 tdata['lines'].append(txt.rstrip())
         else:
@@ -58,15 +64,27 @@ def get_api(opts):
     auth.set_access_token(opts['oauth_token'], opts['oauth_secret'])
     return tweepy.API(auth)
 
-def post_tweet(opts,api,tdata):
+def post_tweet(api,tdata):
     prev = None
     lines = tdata['lines']
+    imgfile = tdata['img']
     for i, txt in enumerate(lines):
-        if prev:
-            st = api.update_status(status = txt, in_reply_to_status_id = prev.id)
-            prev = st
+        if i == (len(lines) - 1) and imgfile:
+            if prev:
+                st = api.update_with_media(status = txt, \
+                                           filename = imgfile, \
+                                           in_reply_to_status_id = prev.id)
+                prev = st
+            else:
+                prev = api.update_with_media(status = txt, \
+                                            filename = imgfile)
         else:
-            prev = api.update_status(status = txt)
+            if prev:
+                st = api.update_status(status = txt, \
+                                       in_reply_to_status_id = prev.id)
+                prev = st
+            else:
+                prev = api.update_status(status = txt)
     return
 
 opts = read_options(etc_dir + "/" + prog_name + ".rc")
@@ -77,6 +95,6 @@ tdata = read_tdata(opts,ctr)
 
 api = get_api(opts)
 
-post_tweet(opts,api,tdata)
+post_tweet(api,tdata)
 
 inc_counter(opts)
