@@ -67,17 +67,16 @@ def get_api(opts):
 def post_tweet(api,tdata):
     prev = None
     lines = tdata['lines']
-    imgfile = tdata['img']
     for i, txt in enumerate(lines):
-        if i == (len(lines) - 1) and imgfile:
+        if i == (len(lines) - 1) and 'img' in tdata:
             if prev:
                 st = api.update_with_media(status = txt, \
-                                           filename = imgfile, \
+                                           filename = tdata['img'], \
                                            in_reply_to_status_id = prev.id)
                 prev = st
             else:
                 prev = api.update_with_media(status = txt, \
-                                            filename = imgfile)
+                                            filename = tdata['img'])
         else:
             if prev:
                 st = api.update_status(status = txt, \
